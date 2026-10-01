@@ -1,17 +1,21 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import Quickshell
 import quickshell.io 1.0 // QuickShell process execution
+import qs.Commons
+import qs.Ui
 
-Rectangle {
+Panel {
     id: root
-    width: 320
-    height: 480
-    color: "#1e1e2e" // Catppuccin mocha base
-    radius: 12
-    
-    // Add border to stand out
-    border.color: "#313244"
-    border.width: 1
+    moduleName: "azterisk.host"
+    ipcTarget: "azterisk.host"
+    manageIpc: false
+
+    property var anchorItem: null
+    property var hostWidget: null
+
+    contentWidth: 320
+    contentHeight: 480
 
     property string externalIp: "Fetching..."
     property string statusText: "Ready"

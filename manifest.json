@@ -7,9 +7,15 @@
   "license": "GPL-3.0",
   "description": "Automatically port forward game and web servers using UPnP. Includes presets for CS2, Minecraft, Palworld, and more.",
   "kinds": [
-    "menu"
+    "bar-widget"
   ],
   "entryPoints": {
-    "menu": "Menu.qml"
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "azterisk.host",
+    "description": "Port forwarding manager",
+    "category": "System",
+    "allowMultiple": false
   }
 }
