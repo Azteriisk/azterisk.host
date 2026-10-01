@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "azterisk.host",
+  "name": "Host",
+  "version": "1.0.0",
+  "author": "azterisk",
+  "license": "GPL-3.0",
+  "description": "Automatically port forward game and web servers using UPnP. Includes presets for CS2, Minecraft, Palworld, and more.",
+  "kinds": [
+    "menu"
+  ],
+  "entryPoints": {
+    "menu": "Menu.qml"
+  }
+}
