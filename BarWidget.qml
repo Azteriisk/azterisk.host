@@ -36,8 +36,9 @@ BarWidget {
     bar: root.bar
     text: "󰆧" // Host icon
     labelVisible: true
+    hasVisualContent: true
     horizontalMargin: 8.75
     verticalPadding: 8.75
-    onClicked: root.togglePanel()
+    onPressed: function(b) { root.togglePanel() }
   }
 }

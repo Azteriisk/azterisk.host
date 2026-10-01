@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -26,12 +26,15 @@ Panel {
         id: upnpProcess
         property var pendingCallback: null
         
-        onStdoutData: (data) => {
-            if (pendingCallback) {
-                try {
-                    let result = JSON.parse(data);
-                    pendingCallback(result);
-                } catch (e) {}
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                if (upnpProcess.pendingCallback) {
+                    try {
+                        let result = JSON.parse(text);
+                        upnpProcess.pendingCallback(result);
+                    } catch (e) {}
+                }
             }
         }
     }
@@ -125,7 +128,7 @@ Panel {
                         width: 50
                         height: 30
                         radius: 6
-                        color: appActive ? "#a6e3a1" : "#f38ba8" // Green running, Red stopped
+                        color: appActive ? "#a6e3a1" : "#f38ba8"
                         Text { anchors.centerIn: parent; text: "App"; color: "#1e1e2e"; font.bold: true; font.pixelSize: 13 }
                         MouseArea {
                             anchors.fill: parent
