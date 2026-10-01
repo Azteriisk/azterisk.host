@@ -10,18 +10,22 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
+  function injectPanel() {
+    if (panelLoader.item) {
+      panelLoader.item.bar = root.bar
+      panelLoader.item.anchorItem = button
+      panelLoader.item.hostWidget = root
+    }
+  }
+
+  onBarChanged: injectPanel()
+
   Loader {
     id: panelLoader
     active: true
     source: Qt.resolvedUrl("Panel.qml")
     visible: false
-    onLoaded: {
-      if (panelLoader.item) {
-        panelLoader.item.bar = root.bar
-        panelLoader.item.anchorItem = button
-        panelLoader.item.hostWidget = root
-      }
-    }
+    onLoaded: root.injectPanel()
   }
 
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false

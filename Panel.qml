@@ -40,7 +40,7 @@ Panel {
     }
 
     function execHelper(args, callback) {
-        upnpProcess.pendingCallback = callback;
+        if (upnpProcess.running) return; upnpProcess.pendingCallback = callback;
         let scriptPath = Qt.resolvedUrl("scripts/upnp_helper.py").replace("file://", "");
         upnpProcess.command = ["python3", scriptPath].concat(args);
         upnpProcess.running = true;
