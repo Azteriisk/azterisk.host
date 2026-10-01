@@ -35,7 +35,9 @@ Rectangle {
 
     function execHelper(args, callback) {
         upnpProcess.pendingCallback = callback;
-        upnpProcess.command = ["python3", "/home/azterisk/projects/azterisk.host/scripts/upnp_helper.py"].concat(args);
+        // Strip file:// prefix from the resolved URL to get the local filesystem path
+        let scriptPath = Qt.resolvedUrl("scripts/upnp_helper.py").replace("file://", "");
+        upnpProcess.command = ["python3", scriptPath].concat(args);
         upnpProcess.running = true;
     }
 
