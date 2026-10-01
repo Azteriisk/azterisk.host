@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Minecraft (Docker)",
+    "port": 25565,
+    "protocol": "tcp",
+    "manager": "docker",
+    "target": "minecraft-server"
+  },
+  {
+    "name": "CS2 Server (Systemd)",
+    "port": 27015,
+    "protocol": "udp",
+    "manager": "systemd",
+    "target": "cs2.service"
+  },
+  {
+    "name": "Web Server",
+    "port": 80,
+    "protocol": "tcp",
+    "manager": "none",
+    "target": ""
+  }
+]

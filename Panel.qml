@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import Quickshell
-import quickshell.io 1.0 // QuickShell process execution
+import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
@@ -13,14 +13,15 @@ Panel {
 
     property var anchorItem: null
     property var hostWidget: null
+    property var bar: null
 
-    contentWidth: 320
-    contentHeight: 480
+    contentWidth: 350
+    contentHeight: 500
 
     property string externalIp: "Fetching..."
     property string statusText: "Ready"
+    property var itemsModel: []
 
-    // Process helper to execute the python script
     Process {
         id: upnpProcess
         property var pendingCallback: null
@@ -30,30 +31,29 @@ Panel {
                 try {
                     let result = JSON.parse(data);
                     pendingCallback(result);
-                } catch (e) {
-                    // console.log("Failed to parse JSON:", data);
-                }
+                } catch (e) {}
             }
         }
     }
 
     function execHelper(args, callback) {
         upnpProcess.pendingCallback = callback;
-        // Strip file:// prefix from the resolved URL to get the local filesystem path
         let scriptPath = Qt.resolvedUrl("scripts/upnp_helper.py").replace("file://", "");
         upnpProcess.command = ["python3", scriptPath].concat(args);
         upnpProcess.running = true;
     }
 
-    Component.onCompleted: {
+    function refresh() {
         execHelper(["status"], function(res) {
-            if (res.success && res.external_ip) {
-                root.externalIp = res.external_ip;
-            } else {
-                root.externalIp = "Unknown / No UPnP";
+            if (res.success) {
+                if (res.external_ip) root.externalIp = res.external_ip;
+                root.itemsModel = res.items || [];
             }
         });
     }
+
+    Component.onCompleted: refresh()
+    onOpenedChanged: if (opened) refresh()
 
     ColumnLayout {
         anchors.fill: parent
@@ -62,7 +62,7 @@ Panel {
 
         Text {
             text: "azterisk.host"
-            color: "#cdd6f4" // Text color
+            color: "#cdd6f4"
             font.pixelSize: 24
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
@@ -77,7 +77,7 @@ Panel {
 
         Text {
             text: root.statusText
-            color: "#f38ba8" // Red/pink status color
+            color: "#f38ba8"
             font.pixelSize: 12
             Layout.alignment: Qt.AlignHCenter
         }
@@ -88,26 +88,16 @@ Panel {
             clip: true
             spacing: 8
             
-            model: ListModel {
-                ListElement { name: "Counter-Strike 2"; port: 27015; protocol: "tcp" }
-                ListElement { name: "Counter-Strike 2 (UDP)"; port: 27015; protocol: "udp" }
-                ListElement { name: "Minecraft Java"; port: 25565; protocol: "tcp" }
-                ListElement { name: "Minecraft Bedrock"; port: 19132; protocol: "udp" }
-                ListElement { name: "Palworld"; port: 8211; protocol: "udp" }
-                ListElement { name: "Valheim"; port: 2456; protocol: "udp" }
-                ListElement { name: "Terraria"; port: 7777; protocol: "tcp" }
-                ListElement { name: "Rust"; port: 28015; protocol: "udp" }
-                ListElement { name: "Enshrouded"; port: 15636; protocol: "udp" }
-                ListElement { name: "HTTP Server"; port: 80; protocol: "tcp" }
-            }
+            model: root.itemsModel
 
             delegate: Rectangle {
                 width: ListView.view.width
-                height: 56
-                color: "#313244" // Surface0
+                height: 64
+                color: "#313244"
                 radius: 8
 
-                property bool isActive: false
+                property bool portActive: false
+                property bool appActive: modelData.app_running === true
 
                 RowLayout {
                     anchors.fill: parent
@@ -117,56 +107,70 @@ Panel {
                         Layout.fillWidth: true
                         spacing: 2
                         Text {
-                            text: model.name
+                            text: modelData.name
                             color: "#cdd6f4"
                             font.bold: true
                             font.pixelSize: 14
                         }
                         Text {
-                            text: model.port + " / " + model.protocol.toUpperCase()
+                            text: modelData.port + " / " + modelData.protocol.toUpperCase() + (modelData.manager !== 'none' ? " (" + modelData.manager + ")" : "")
                             color: "#a6adc8"
                             font.pixelSize: 12
                         }
                     }
 
+                    // App control button
                     Rectangle {
-                        width: 60
+                        visible: modelData.manager !== 'none'
+                        width: 50
                         height: 30
                         radius: 6
-                        color: parent.parent.isActive ? "#f38ba8" : "#89b4fa" // Stop is Red, Host is Blue
-                        
-                        Text {
-                            anchors.centerIn: parent
-                            text: parent.parent.parent.isActive ? "Stop" : "Host"
-                            color: "#1e1e2e"
-                            font.bold: true
-                            font.pixelSize: 13
-                        }
-                        
+                        color: appActive ? "#a6e3a1" : "#f38ba8" // Green running, Red stopped
+                        Text { anchors.centerIn: parent; text: "App"; color: "#1e1e2e"; font.bold: true; font.pixelSize: 13 }
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                let rect = parent.parent.parent;
-                                if (rect.isActive) {
-                                    root.statusText = "Stopping " + model.name + "...";
-                                    root.execHelper(["remove", model.port.toString(), model.protocol], function(res) {
-                                        if (res.success) {
-                                            rect.isActive = false;
-                                            root.statusText = model.name + " stopped.";
-                                        } else {
-                                            root.statusText = "Error stopping: " + (res.error || "");
-                                        }
+                                let action = appActive ? "stop" : "start";
+                                root.statusText = (appActive ? "Stopping " : "Starting ") + modelData.name + "...";
+                                root.execHelper(["app", action, modelData.manager, modelData.target], function(res) {
+                                    if (res.success) {
+                                        root.statusText = "App " + action + "ed.";
+                                        root.refresh();
+                                    } else {
+                                        root.statusText = "App error: " + (res.error || "");
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                    // Port control button
+                    Rectangle {
+                        width: 60
+                        height: 30
+                        radius: 6
+                        color: portActive ? "#f38ba8" : "#89b4fa"
+                        Text { anchors.centerIn: parent; text: portActive ? "Un-Port" : "Port"; color: "#1e1e2e"; font.bold: true; font.pixelSize: 13 }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (portActive) {
+                                    root.statusText = "Closing port " + modelData.port + "...";
+                                    root.execHelper(["remove", modelData.port.toString(), modelData.protocol], function(res) {
+                                        portActive = false;
+                                        root.statusText = "Port closed.";
                                     });
                                 } else {
-                                    root.statusText = "Starting " + model.name + "...";
-                                    root.execHelper(["add", model.port.toString(), model.protocol], function(res) {
+                                    root.statusText = "Opening port " + modelData.port + "...";
+                                    root.execHelper(["add", modelData.port.toString(), modelData.protocol], function(res) {
                                         if (res.success) {
-                                            rect.isActive = true;
-                                            root.statusText = model.name + " is live!";
+                                            portActive = true;
+                                            root.statusText = "Port is live!";
                                             if (res.ip) root.externalIp = res.ip;
                                         } else {
-                                            root.statusText = "Error starting: " + (res.error || "");
+                                            root.statusText = "Port error: " + (res.error || "");
                                         }
                                     });
                                 }
